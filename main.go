@@ -14,7 +14,7 @@ func getAddr(host,port string)string{
 	return fmt.Sprintf("%s:%s",host,port)
 }
 func main() {
-	app := cli.App("tundra","HTTP-MQTT broker")
+	app := cli.App("tundra","HTTP-MQTT bridge")
 	cmd := app.Cmd
 	port := cmd.String(cli.StringOpt{
 		Name:   "port",

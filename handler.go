@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"encoding/json"
 	"io/ioutil"
-	"go.corp.yahoo.com/clusterville/log"
+	"log"
 	"fmt"
 )
 
@@ -46,19 +46,20 @@ func NewHandler(mqttbroker,username,password,clientID string) *Handler{
 func (h *Handler) PublishHandler(w http.ResponseWriter, r *http.Request){
 	w.Header().Set("Content-Type", "application/json")
 	var p Payload
+	resp:=new(Response)
 	body, rerr := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	if rerr!=nil{
-		log.Println(rerr)
+		resp.Error=rerr
 	}
 	err := json.Unmarshal(body,&p)
 	if err!=nil{
-		log.Println(err)
+		resp.Error=err
 	}
+	resp.Payload=p
 	logHandler(p)
 	err=h.mqttclient.Publish(p.Topic,p.Message,p.Retain,p.Qos)
-	resp:=new(Response)
-	resp.Payload=p
+
 	if err!=nil{
 		resp.Error=err
 		resp.Status="FAILURE"

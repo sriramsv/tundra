@@ -1,8 +1,8 @@
 # tundra
-HTTP-MQTT broker in pure golang :)
+HTTP-MQTT bridge in pure golang :)
 
 
-Tundra is a HTTP-MQTT broker written in pure golang.
+Tundra is a HTTP-MQTT bridge written in pure golang.
 
 ## Installation
 
@@ -15,9 +15,11 @@ $ go install github.com/sriramsv/tundra
 
 ```
 
+tundra --help
+
 Usage: tundra [OPTIONS]
 
-HTTP-MQTT broker
+HTTP-MQTT bridge
 
 Options:
       --port             port to listen on! (env $TUNDRA_PORT) (default "3000")
