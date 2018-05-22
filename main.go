@@ -14,6 +14,8 @@ func getAddr(host,port string)string{
 	return fmt.Sprintf("%s:%s",host,port)
 }
 func main() {
+	hostname,_:=os.Hostname()
+	log.Println(hostname)
 	app := cli.App("tundra","HTTP-MQTT bridge")
 	cmd := app.Cmd
 	port := cmd.String(cli.StringOpt{
@@ -48,9 +50,9 @@ func main() {
 	})
 	mqtt_clientId := cmd.String(cli.StringOpt{
 		Name:   "mqtt-client-id",
-		Desc:   "port to listen on!",
-		Value:  "tundra",
-		EnvVar: "TUNDRA_MQTT_CLIENT_ID",
+		Desc:   "mqtt client id",
+		Value:  hostname,
+		EnvVar: "TUNDRA_MQTT_USER",
 	})
 
 	cmd.Action = func() {

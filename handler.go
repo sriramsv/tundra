@@ -12,6 +12,8 @@ import (
 
 type ConnectHandler func()error
 
+const SuccessStatus="SUCCESS"
+const FailureStatus="FAILURE"
 type  Handler struct{
 	mqttclient *mqtt.MQTTClient
 	ConnectHandler ConnectHandler
@@ -25,16 +27,15 @@ type Payload struct {
 }
 
 type Response struct {
-	Payload Payload
 	Status string
-	Error error
+	Error string
 }
 func NewHandler(mqttbroker,username,password,clientID string) *Handler{
 	mclient:=mqtt.New()
 	connection:=mclient.GetConnectionHandler(mqttbroker,clientID,username,password)
 	err:=connection()
 	if err!=nil{
-		log.Fatalln(err)
+		log.Fatalln("V:",err)
 	}
 	handler:=&Handler{
 		mqttclient:mclient,
@@ -44,33 +45,62 @@ func NewHandler(mqttbroker,username,password,clientID string) *Handler{
 }
 
 func (h *Handler) PublishHandler(w http.ResponseWriter, r *http.Request){
-	w.Header().Set("Content-Type", "application/json")
-	var p Payload
-	resp:=new(Response)
-	body, rerr := ioutil.ReadAll(r.Body)
+	var p Payload;
 	defer r.Body.Close()
-	if rerr!=nil{
-		resp.Error=rerr
+	if r.Method!="POST"{
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
 	}
-	err := json.Unmarshal(body,&p)
-	if err!=nil{
-		resp.Error=err
-	}
-	resp.Payload=p
-	logHandler(p)
-	err=h.mqttclient.Publish(p.Topic,p.Message,p.Retain,p.Qos)
 
+	body, err := ioutil.ReadAll(r.Body)
 	if err!=nil{
-		resp.Error=err
-		resp.Status="FAILURE"
-	} else{
-		resp.Error=nil
-		resp.Status="SUCCESS"
+		w.Write([]byte(err.Error()))
+		return
 	}
-	json.NewEncoder(w).Encode(resp)
+	err = json.Unmarshal(body,&p)
+	if err!=nil{
+		w.Write([]byte(err.Error()))
+		return
+	}
+	resp:=*h.publishhandler(&p)
+	log.Println(resp)
+	js, err := json.Marshal(resp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(js)
+
 }
 
 
 func logHandler(p Payload){
 	log.Println(fmt.Sprintf("Received message:(%s) on topic:(%s) [QOS:%d,retain:%v]",p.Message,p.Topic,p.Qos,p.Retain))
+}
+
+func (h *Handler) publishhandler( p *Payload)(*Response){
+	payload:=*p
+	logHandler(payload)
+	resp:=new(Response)
+	if payload.Topic==""{
+		resp.Error="topic is empty"
+		resp.Status=FailureStatus
+		return resp
+	}
+	if payload.Message==""{
+		resp.Error="message is empty"
+		resp.Status=FailureStatus
+		return resp
+	}
+
+	err:=h.mqttclient.Publish(p.Topic,p.Message,p.Retain,p.Qos)
+	if err!=nil{
+		resp.Error=err.Error()
+		resp.Status=FailureStatus
+	} else{
+		resp.Error=""
+		resp.Status=SuccessStatus
+	}
+	return resp
+
 }
